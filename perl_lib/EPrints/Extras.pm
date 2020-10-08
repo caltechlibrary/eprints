@@ -83,11 +83,11 @@ sub render_xhtml_field
 	return $fragment;
 }
 
+
 ######################################################################
 =pod
 
-=item $xhtml = EPrints::Extras::render_formatted_abstract_field( $session, $fiel
-d,
+=item $xhtml = EPrints::Extras::render_formatted_abstract_field( $session, $field,
 $value )
 
 This is intended for rendering abstracts in the CaltechTHESIS database.
@@ -103,8 +103,6 @@ A final consideration is that the <p> tags will not have the alignment, etc.
 style information normally supplied by the formatting routines.
 The only way I can think of around this is to hardcode them in.
 
-NOTE: Caltech Library customization by BC (3.1.x - 3.3.10), ported to 3.3.16 by RSD
-
 =cut
 ######################################################################
 
@@ -114,8 +112,7 @@ sub render_formatted_abstract_field
 
         if( !defined $value ) { return $session->make_doc_fragment; }
 
-        # change angle brackets to entities if text does not already contain tag
-s
+        # change angle brackets to entities if text does not already contain tags
         if ( $value =~ m/<sub>/i || $value =~ m/<sup>/i ||
                 $value =~ m/<br/i || $value =~ m/<p>/i ||
                 $value =~ m/<strong>/i || $value =~ m/<em>/i )
@@ -135,7 +132,7 @@ s
         {
                 ;  # leave it alone
         }
-				else
+        else
         {
 #               $value =~ s/\n{2,}/<br \/><br \/>/g;
                 $value =~ s/\n\n/<br \/><br \/>/g;
@@ -143,12 +140,10 @@ s
         # Finally, if there are <p> tags, add style information
         if ( $value =~ /<p>/i )
         {
-                $value =~ s/<p>/<p style="text-align: left; margin: 1em auto 0em
- auto">/g;
+                $value =~ s/<p>/<p style="text-align: left; margin: 1em auto 0em auto">/g;
         }
 
-#        # Try something else.  Remove all <p> tags; replace </p> with <br /><br
- />
+#        # Try something else.  Remove all <p> tags; replace </p> with <br /><br />
 #        $value =~ s/<p>//g;
 #       $value =~ s/<\/p>/<br \/><br \/>/g;
 
@@ -158,15 +153,13 @@ s
                 NoLWP => 1 );
 
                 local $SIG{__DIE__};
-        my $doc = eval { EPrints::XML::parse_xml_string( "<fragment>".$value."</
-fragment>" ); };
+        my $doc = eval { EPrints::XML::parse_xml_string( "<fragment>".$value."</fragment>" ); };
         if( $@ )
         {
                 my $err = $@;
                 $err =~ s# at /.*##;
                 my $pre = $session->make_element( "pre" );
-                $pre->appendChild( $session->make_text( "Error parsing XML in re
-nder_xhtml_field: ".$err ) );
+                $pre->appendChild( $session->make_text( "Error parsing XML in render_xhtml_field: ".$err ) );
                 return $pre;
         }
         my $fragment = $session->make_doc_fragment;
