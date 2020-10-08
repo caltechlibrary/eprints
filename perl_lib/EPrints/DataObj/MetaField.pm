@@ -43,7 +43,7 @@ sub get_system_field_info
 	my( $class ) = @_;
 
 	return
-	( 
+	(
 		{ name=>"metafieldid", type=>"counter", sql_counter => "metafieldid", },
 
 		{ name=>"mfdatasetid", type=>"set", required=>1, input_rows=>1,
@@ -199,6 +199,14 @@ sub _get_sub_field_types
 	return @types;
 }
 
+# "Literaltext" type added by BC for author id strings (e.g. "Smith-J-P"), which
+# should be indexed as a single string. Specific changes ported forward in the
+# return quote words list:
+#     + "id" added between "float" and "int"
+#     + "literaltext" added between "itemref" and "longtext"
+#
+# RSD, 2020-10-08
+#
 sub _get_field_types
 {
 	my @types;
@@ -212,8 +220,10 @@ sub _get_field_types
 			date
 			email
 			float
+			id
 			int
 			itemref
+			literaltext
 			longtext
 			multilang
 			name
@@ -385,7 +395,7 @@ Return default values for this object based on the starting data.
 sub get_defaults
 {
 	my( $class, $repo, $data, $dataset ) = @_;
-	
+
 	$class->SUPER::get_defaults( $repo, $data, $dataset );
 
 	$data->{"type"} = "text";
@@ -1034,10 +1044,10 @@ sub make_field_object
 
 	$fielddata->{provenance} = "user"; # always user
 
-	my $field = EPrints::MetaField->new( 
+	my $field = EPrints::MetaField->new(
 		repository => $repo,
-		dataset => $dataset, 
-		%{$fielddata} );	
+		dataset => $dataset,
+		%{$fielddata} );
 
 	return $field;
 }
@@ -1227,4 +1237,3 @@ You should have received a copy of the GNU Lesser General Public
 License along with EPrints.  If not, see L<http://www.gnu.org/licenses/>.
 
 =for LICENSE END
-

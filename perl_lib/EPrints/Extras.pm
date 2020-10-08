@@ -22,7 +22,7 @@ default render or input methods.
 
 =over 4
 
-=cut 
+=cut
 
 package EPrints::Extras;
 
@@ -38,11 +38,11 @@ use strict;
 $value )
 
 Return an XHTML DOM object of the contents of $value. In the case of
-an error parsing the XML in $value return an XHTML DOM object 
+an error parsing the XML in $value return an XHTML DOM object
 describing the problem.
 
 This is intended to be used by the render_single_value metadata
-field option, as an alternative to the default text renderer. 
+field option, as an alternative to the default text renderer.
 
 This allows through any XML element, so could cause problems if
 people start using SCRIPT to make pop-up windows. A later version
@@ -79,9 +79,108 @@ sub render_xhtml_field
 			$session->clone_for_me( $node, 1 ) );
 	}
 	EPrints::XML::dispose( $doc );
-		
+
 	return $fragment;
 }
+
+######################################################################
+=pod
+
+=item $xhtml = EPrints::Extras::render_formatted_abstract_field( $session, $fiel
+d,
+$value )
+
+This is intended for rendering abstracts in the CaltechTHESIS database.
+These have embedded newlines, with two newlines intended to represent a
+blank line.  They may also contain HTML formatting for subscripts, etc.
+
+First, change all "<" and ">" characters to appropriate entities, if
+this abstract does not appear to already contain tags.  Then
+change all double newlines in $value to <br /><br />.  Then proceed
+as in render_xhtml_field above, which will allow through any XML element.
+
+A final consideration is that the <p> tags will not have the alignment, etc.
+style information normally supplied by the formatting routines.
+The only way I can think of around this is to hardcode them in.
+
+NOTE: Caltech Library customization by BC (3.1.x - 3.3.10), ported to 3.3.16 by RSD
+
+=cut
+######################################################################
+
+sub render_formatted_abstract_field
+{
+        my( $session , $field , $value ) = @_;
+
+        if( !defined $value ) { return $session->make_doc_fragment; }
+
+        # change angle brackets to entities if text does not already contain tag
+s
+        if ( $value =~ m/<sub>/i || $value =~ m/<sup>/i ||
+                $value =~ m/<br/i || $value =~ m/<p>/i ||
+                $value =~ m/<strong>/i || $value =~ m/<em>/i )
+        {
+                # assume the abstract already has HTML tags and DON'T
+                # make any angle brackets into entities
+                ;
+        }
+        else
+        {
+                $value =~ s/>/&gt;/g;
+                $value =~ s/</&lt;/g;
+        }
+        # If there are no <p> or <br> tags, we want to make sure double-newlines
+        # look like paragraph breaks.  Change double newlines to <br /><br />
+        if ( $value =~ m/<p>/i || $value =~ m/<br/i )
+        {
+                ;  # leave it alone
+        }
+				else
+        {
+#               $value =~ s/\n{2,}/<br \/><br \/>/g;
+                $value =~ s/\n\n/<br \/><br \/>/g;
+        }
+        # Finally, if there are <p> tags, add style information
+        if ( $value =~ /<p>/i )
+        {
+                $value =~ s/<p>/<p style="text-align: left; margin: 1em auto 0em
+ auto">/g;
+        }
+
+#        # Try something else.  Remove all <p> tags; replace </p> with <br /><br
+ />
+#        $value =~ s/<p>//g;
+#       $value =~ s/<\/p>/<br \/><br \/>/g;
+
+        my( %c ) = (
+                ParseParamEnt => 0,
+                ErrorContext => 2,
+                NoLWP => 1 );
+
+                local $SIG{__DIE__};
+        my $doc = eval { EPrints::XML::parse_xml_string( "<fragment>".$value."</
+fragment>" ); };
+        if( $@ )
+        {
+                my $err = $@;
+                $err =~ s# at /.*##;
+                my $pre = $session->make_element( "pre" );
+                $pre->appendChild( $session->make_text( "Error parsing XML in re
+nder_xhtml_field: ".$err ) );
+                return $pre;
+        }
+        my $fragment = $session->make_doc_fragment;
+        my $top = ($doc->getElementsByTagName( "fragment" ))[0];
+        foreach my $node ( $top->getChildNodes )
+        {
+                $fragment->appendChild(
+                        $session->clone_for_me( $node, 1 ) );
+        }
+        EPrints::XML::dispose( $doc );
+
+        return $fragment;
+}
+
 
 ######################################################################
 =pod
@@ -91,7 +190,7 @@ sub render_xhtml_field
 Return an XHTML DOM object of the contents of $value.
 
 The contents of $value will be rendered in an HTML <pre>
-element. 
+element.
 
 =cut
 ######################################################################
@@ -103,7 +202,7 @@ sub render_preformatted_field
 	my $pre = $session->make_element( "pre" );
 	$value =~ s/\r\n/\n/g;
 	$pre->appendChild( $session->make_text( $value ) );
-		
+
 	return $pre;
 }
 
@@ -115,7 +214,7 @@ sub render_preformatted_field
 Return an XHTML DOM object of the contents of $value.
 
 The contents of $value will be rendered in an HTML <pre>
-element. 
+element.
 
 =cut
 ######################################################################
@@ -126,7 +225,7 @@ sub render_highlighted_field
 
 	my $div = $session->make_element( "div", class=>"ep_highlight" );
 	my $v=$field->render_value_actual( $session, $value, $alllangs, $nolink, $object );
-	$div->appendChild( $v );	
+	$div->appendChild( $v );
 	return $div;
 }
 
@@ -174,7 +273,7 @@ sub render_lookup_list
 
 =item $xhtml = EPrints::Extras::render_url_truncate_end( $session, $field, $value )
 
-Hyper link the URL but truncate the end part if it gets longer 
+Hyper link the URL but truncate the end part if it gets longer
 than 50 characters.
 
 =cut
@@ -184,7 +283,7 @@ sub render_url_truncate_end
 {
 	my( $session, $field, $value ) = @_;
 
-	my $len = 50;	
+	my $len = 50;
 	my $link = $session->render_link( $value );
 	my $text = $value;
 	if( length( $value ) > $len )
@@ -200,7 +299,7 @@ sub render_url_truncate_end
 
 =item $xhtml = EPrints::Extras::render_url_truncate_middle( $session, $field, $value )
 
-Hyper link the URL but truncate the middle part if it gets longer 
+Hyper link the URL but truncate the middle part if it gets longer
 than 50 characters.
 
 =cut
@@ -210,7 +309,7 @@ sub render_url_truncate_middle
 {
 	my( $session, $field, $value ) = @_;
 
-	my $len = 50;	
+	my $len = 50;
 	my $link = $session->render_link( $value );
 	my $text = $value;
 	if( length( $value ) > $len )
@@ -224,9 +323,102 @@ sub render_url_truncate_middle
 ######################################################################
 =pod
 
+=item $xhtml = EPrints::Extras::render_thesis_committee( $session, $field, $valu
+e )
+
+Display the thesis committee as a list, omitting ID and email, and putting
+role in parens if chair or co-chair.
+
+NOTE: Caltech Library customization by BC (3.1.x - 3.3.10), ported to 3.3.16 by RSD
+
+=cut
+######################################################################
+
+sub render_thesis_committee
+{
+        my( $session, $field, $value ) = @_;
+
+        my $f = $field->get_property( "fields_cache" );
+        my $fmap = {};
+        foreach my $field_conf ( @{$f} )
+        {
+                my $fieldname = $field_conf->{name};
+                my $field = $field->{dataset}->get_field( $fieldname );
+                $fmap->{$field_conf->{sub_name}} = $field;
+        }
+
+        my $ul = $session->make_element( "ul" );
+        foreach my $row ( @{$value} )
+        {
+                my $li = $session->make_element( "li" );
+                my $text = $session->render_name( $row->{name} );
+                if( defined $row->{role} )
+                {
+                        my $role = " (".$row->{role}.")";
+                        if ( $role eq " (chair)" || $role eq " (co-chair)" )
+                        {
+                                $text->appendChild( $session->make_text( $role )
+ );
+                        }
+                }
+                $li->appendChild( $text );
+                $ul->appendChild( $li );
+        }
+
+        return $ul;
+}
+
+######################################################################
+=pod
+
+=item $xhtml = EPrints::Extras::render_thesis_advisor( $session, $field, $value
+)
+
+Display the thesis advisor(s) as a list, omitting ID and email, and putting
+role in parens.
+
+NOTE: Caltech Library customization by BC (3.1.x - 3.3.10), ported to 3.3.16 by RSD
+
+=cut
+######################################################################
+
+sub render_thesis_advisor
+{
+        my( $session, $field, $value ) = @_;
+
+        my $f = $field->get_property( "fields_cache" );
+        my $fmap = {};
+        foreach my $field_conf ( @{$f} )
+        {
+                my $fieldname = $field_conf->{name};
+                my $field = $field->{dataset}->get_field( $fieldname );
+                $fmap->{$field_conf->{sub_name}} = $field;
+        }
+
+        my $ul = $session->make_element( "ul" );
+        foreach my $row ( @{$value} )
+        {
+                my $li = $session->make_element( "li" );
+                my $text = $session->render_name( $row->{name} );
+                if( defined $row->{role} && scalar @{$value} > 1 )
+                {
+                        my $role = " (".$row->{role}.")";
+                        $text->appendChild( $session->make_text( $role ) );
+                }
+                $li->appendChild( $text );
+                $ul->appendChild( $li );
+        }
+
+        return $ul;
+}
+
+
+######################################################################
+=pod
+
 =item $xhtml = EPrints::Extras::render_related_url( $session, $field, $value )
 
-Hyper link the URL but truncate the middle part if it gets longer 
+Hyper link the URL but truncate the middle part if it gets longer
 than 50 characters.
 
 =cut
@@ -237,7 +429,7 @@ sub render_related_url
 	my( $session, $field, $value ) = @_;
 
 	my $f = $field->get_property( "fields_cache" );
-	my $fmap = {};	
+	my $fmap = {};
 	foreach my $field_conf ( @{$f} )
 	{
 		my $fieldname = $field_conf->{name};
@@ -278,7 +470,7 @@ value. Suitable for make_single_value_orderkey on the title field.
 =cut
 ######################################################################
 
-sub english_title_orderkey 
+sub english_title_orderkey
 {
         my( $field, $value, $dataset ) = @_;
 
@@ -294,6 +486,8 @@ sub english_title_orderkey
 =item $xhtml_dom = EPrints::Extras::render_possible_doi( $field, $value, $dataset )
 
 If the field looks like it contains a DOI then link it.
+
+NOTE: This is in the master branch of EPrints, replacing prior Caltech Library Custom Code, RSD, 2020-10-08
 
 =cut
 ######################################################################
@@ -353,4 +547,3 @@ You should have received a copy of the GNU Lesser General Public
 License along with EPrints.  If not, see L<http://www.gnu.org/licenses/>.
 
 =for LICENSE END
-

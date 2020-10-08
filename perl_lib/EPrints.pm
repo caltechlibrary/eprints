@@ -65,7 +65,7 @@ A shell script will print the stack trace to the console.
 package EPrints;
 
 my $conf;
-		
+
 use Cwd;
 
 BEGIN
@@ -245,7 +245,9 @@ use EPrints::Apache::Login;
 use EPrints::Apache::Auth;
 use EPrints::Apache::Rewrite;
 # If someone really wants VLit they can enable it via Apache conf
-# use EPrints::Apache::VLit;
+# Uncommented VLit 12/30/2012 BC, also uncommented for v3.3.16, RSD 2020-01-08
+# VLit is used in Caltech Lab Notes, RSD 2020-10-08
+use EPrints::Apache::VLit;
 use EPrints::Apache::Template;
 use EPrints::Apache::Storage;
 use EPrints::Apache::REST;
@@ -452,7 +454,7 @@ sub post_config_handler
 	{
 		$s->log->notice( "Warning! Running EPrints under threads is experimental and liable to break" );
 	}
-	
+
 	# check for configuration using methods removed from Apache2.4
 	my $check_security = !Apache2::Connection->can( 'remote_ip' );
 
@@ -489,7 +491,7 @@ sub post_config_handler
 			 my $hostname = $repo->config( "host" );
 			 $s->warn( "EPrints Warning! '".$repo->get_id."' is configured for port $port but Apache does not have NameVirtualHosts configured for that port. This may cause the wrong repository to respond to '$hostname:$port'. To fix this add to your main Apache configuration file: NameVirtualHost *:$port" );
 		 }
-		 
+
 		 if( $check_security && defined $repo->config( "can_request_view_document" ) )
 		 {
 		 	local $Data::Dumper::Deparse=1;
@@ -566,14 +568,14 @@ sub repository($$%)
 	return undef if( !$ok );
 
 	return EPrints::Repository->new( $repository_id, %options );
-}	
+}
 
 
 =pod
 
 =item $repo = $ep->current_repository();
 
-Returns the current L<EPrints::Repository>. The current 
+Returns the current L<EPrints::Repository>. The current
 repository is determined by the apache request.
 
 Returns undef if there is no current repository active.
@@ -760,4 +762,3 @@ You should have received a copy of the GNU Lesser General Public
 License along with EPrints.  If not, see <http://www.gnu.org/licenses/>.
 
 =for LICENSE CLOSE
-
